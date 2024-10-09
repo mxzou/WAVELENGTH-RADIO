@@ -454,18 +454,26 @@ const TrackInfo: React.FC<{ track: Track, onClose: () => void }> = ({ track, onC
       try {
         const response = await fetch(`/api/albumCover?artist=${encodeURIComponent(track.artist)}&album=${encodeURIComponent(track.album)}`)
         const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || `HTTP error! status: ${response.status}`)
+        }
+
+        console.log('Album cover API response:', data) // Keep this for debugging
+
         if (data.album && data.album.image) {
-          const extraLargeImage = data.album.image.find((img: any) => img.size === 'extralarge')
+          const extraLargeImage = data.album.image.find((img: { size: string, '#text': string }) => img.size === 'extralarge')
           if (extraLargeImage && extraLargeImage['#text']) {
             setAlbumCover(extraLargeImage['#text'])
           } else {
-            setError("No album cover found")
+            setError("No large album cover found")
           }
         } else {
           setError("No album information found")
         }
       } catch (err) {
-        setError("Failed to fetch album cover")
+        console.error('Error fetching album cover:', err)
+        setError(`Failed to fetch album cover: ${err instanceof Error ? err.message : String(err)}`)
       } finally {
         setIsLoading(false)
       }
