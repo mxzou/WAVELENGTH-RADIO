@@ -3,6 +3,7 @@
     {
       "src": "package.json",
       "use": "@vercel/node",
+      "buildCommand": "bun run build --no-lint",
       "config": {
         "lint": false
       }
