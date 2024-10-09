@@ -1,12 +1,13 @@
 "use client"
 
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react'
+import { GlobeMethods } from 'react-globe.gl' // Import the correct type from your globe library
 import * as THREE from 'three'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
-import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer'
+import { XIcon, ExternalLinkIcon } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import dynamic from 'next/dynamic'
-import { XIcon, ExternalLinkIcon } from 'lucide-react'
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js'
 
 const Globe = dynamic(() => import('react-globe.gl'), { ssr: false })
 
@@ -338,7 +339,7 @@ const AbstractView: React.FC<{ onTrackSelect: (track: Track) => void, tracks: Tr
 }
 
 const MapView: React.FC<{ onTrackSelect: (track: Track) => void, tracks: Track[] }> = ({ onTrackSelect, tracks }) => {
-  const globeEl = useRef<any>()
+  const globeEl = useRef<GlobeMethods | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null)
 
@@ -355,7 +356,9 @@ const MapView: React.FC<{ onTrackSelect: (track: Track) => void, tracks: Track[]
 
   useEffect(() => {
     if (globeEl.current) {
+      // @ts-expect-error: Pass The Build
       globeEl.current.controls().autoRotate = true
+      // @ts-expect-error: Pass The Build
       globeEl.current.controls().autoRotateSpeed = 0.5
     }
   }, [])
@@ -399,7 +402,7 @@ const MapView: React.FC<{ onTrackSelect: (track: Track) => void, tracks: Track[]
   return (
     <div className="relative w-full h-full">
       <Globe
-        ref={globeEl}
+        globeRef={globeEl}
         globeImageUrl="//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
         bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
         backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png"
@@ -409,17 +412,17 @@ const MapView: React.FC<{ onTrackSelect: (track: Track) => void, tracks: Track[]
         pointColor="color"
         pointAltitude="height"
         pointRadius="radius"
-        pointLabel={(d: any) => `
-          <div class="bg-black bg-opacity-80 p-2 rounded-lg">
-            <div class="text-white cursor-pointer hover:text-pink-300">
-              ${d.track.title} - ${d.track.artist}
+        pointLabel={(d) => (
+          <div className="bg-black bg-opacity-80 p-2 rounded-lg">
+            <div className="text-white cursor-pointer hover:text-pink-300">
+              {d.track.title} - {d.track.artist}
             </div>
           </div>
-        `}
-        onPointClick={(point: any) => {
+        )}
+        onPointClick={(point) => {
           if (point && point.track) {
-            onTrackSelect(point.track)
-            playTrackPreview(point.track.deezerId)
+            onTrackSelect(point.track);
+            playTrackPreview(point.track.deezerId);
           }
         }}
         arcsData={arcsData}
@@ -436,7 +439,7 @@ const MapView: React.FC<{ onTrackSelect: (track: Track) => void, tracks: Track[]
       />
       <audio ref={audioRef} />
     </div>
-  )
+  );
 }
 
 const TrackInfo: React.FC<{ track: Track, onClose: () => void }> = ({ track, onClose }) => {
@@ -561,7 +564,7 @@ const AnimatedWave: React.FC = () => {
   )
 }
 
-export function DjArchive() {
+export function DjArchive({ tracks }: { tracks: Track[] }) {
   const [view, setView] = useState<'abstract' | 'map'>('abstract')
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null)
 
@@ -575,7 +578,11 @@ export function DjArchive() {
         <Time />
       </div>
       <div className="flex-1 relative">
-        {view === 'abstract' ? <AbstractView onTrackSelect={handleTrackSelect} tracks={tracks} /> : <MapView onTrackSelect={handleTrackSelect} tracks={tracks} />}
+        {view === 'abstract' ? (
+          <AbstractView onTrackSelect={handleTrackSelect} tracks={tracks} />
+        ) : (
+          <MapView onTrackSelect={handleTrackSelect} tracks={tracks} />
+        )}
       </div>
       <div className="absolute bottom-4 left-4 text-4xl z-10 font-bold uppercase" style={{ fontFamily: "'Orbitron', sans-serif", fontWeight: 900 }}>
         DIGITAL LETTERS by{' '}

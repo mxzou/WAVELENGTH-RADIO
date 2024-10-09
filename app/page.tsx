@@ -29,10 +29,6 @@ const dummyTracks: Track[] = [
   // Add more dummy tracks as needed
 ];
 
-interface DjArchiveProps {
-  tracks: Track[];
-}
-
 export default function Page() {
   return <DjArchive tracks={dummyTracks} />
 }
