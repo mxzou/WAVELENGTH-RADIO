@@ -3,11 +3,12 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react'
 import { GlobeMethods } from 'react-globe.gl' // Import the correct type from your globe library
 import * as THREE from 'three'
-import { XIcon, ExternalLinkIcon, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
+import { XIcon, ExternalLinkIcon, ChevronLeftIcon, ChevronRightIcon, ChevronUpIcon, ChevronDownIcon } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import dynamic from 'next/dynamic'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js'
+import { useMediaQuery } from 'react-responsive';
 
 const Globe = dynamic(() => import('react-globe.gl'), { ssr: false })
 
@@ -38,8 +39,9 @@ const getRandomColor = (): string => {
   return `rgb(${Math.floor(Math.random() * 256)}, ${Math.floor(Math.random() * 256)}, ${Math.floor(Math.random() * 256)})`
 }
 
-const Time: React.FC = () => {
+const Time: React.FC<{ isMobile: boolean }> = ({ isMobile }) => {
   const [times, setTimes] = useState<{ [key: string]: string }>({})
+  const [isExpanded, setIsExpanded] = useState(false)
 
   useEffect(() => {
     const updateTimes = () => {
@@ -72,6 +74,32 @@ const Time: React.FC = () => {
     const interval = setInterval(updateTimes, 1000)
     return () => clearInterval(interval)
   }, [])
+
+  if (isMobile) {
+    return (
+      <div className="bg-black bg-opacity-80 rounded-lg text-white text-xs font-bold p-2">
+        <div className="flex justify-between items-center">
+          <span>NYC: {times['NYC'] || 'Loading...'}</span>
+          <button 
+            onClick={() => setIsExpanded(!isExpanded)} 
+            className="ml-2 focus:outline-none"
+          >
+            {isExpanded ? <ChevronUpIcon size={16} /> : <ChevronDownIcon size={16} />}
+          </button>
+        </div>
+        {isExpanded && (
+          <div className="mt-2 space-y-1">
+            {Object.entries(times).filter(([key]) => key !== 'NYC').map(([location, time]) => (
+              <div key={location} className="flex justify-between">
+                <span>{location}:</span>
+                <span>{time}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className="bg-black bg-opacity-80 p-6 rounded-lg text-white text-xl font-bold">
@@ -490,7 +518,7 @@ const TrackInfo: React.FC<{ track: Track, onClose: () => void, onPlay: (track: T
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 20 }}
-      className="fixed bottom-20 left-4 bg-black bg-opacity-80 text-white p-4 rounded-lg shadow-lg z-50 max-w-md w-full overflow-y-auto max-h-[80vh]"
+      className="fixed bottom-20 left-4 right-4 md:left-4 md:right-auto bg-black bg-opacity-80 text-white p-4 rounded-lg shadow-lg z-50 md:max-w-md w-auto overflow-y-auto max-h-[60vh] md:max-h-[80vh]"
       style={{ fontFamily: "'Orbitron', sans-serif", border: '2px solid #00ff00' }}
     >
       <button onClick={onClose} className="absolute top-2 right-2 text-white hover:text-gray-300">
@@ -575,31 +603,26 @@ const AnimatedWave: React.FC = () => {
   )
 }
 
-const SessionSelector: React.FC<{ sessions: Session[], currentSession: number, onSessionChange: (index: number) => void }> = ({ sessions, currentSession, onSessionChange }) => {
+const SessionSelector: React.FC<{ sessions: Session[], currentSession: number, onSessionChange: (index: number) => void, isMobile: boolean }> = ({ sessions, currentSession, onSessionChange, isMobile }) => {
   return (
-    <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-10 p-2 rounded-lg flex items-center space-x-4">
+    <div className={`fixed ${isMobile ? 'top-2 left-2' : 'top-4 left-1/2 transform -translate-x-1/2'} z-10 p-2 rounded-lg flex items-center space-x-2 md:space-x-4 bg-black bg-opacity-50`}>
       <button
         onClick={() => onSessionChange(Math.max(0, currentSession - 1))}
         className="text-white hover:text-gray-300 disabled:opacity-50"
         disabled={currentSession === 0}
       >
-        <ChevronLeftIcon size={24} />
+        <ChevronLeftIcon size={20} />
       </button>
-      <div className="text-white font-bold uppercase">{sessions[currentSession].title}</div>
+      <div className="text-white font-bold uppercase text-xs md:text-sm truncate max-w-[150px] md:max-w-none">{sessions[currentSession].title}</div>
       <button
         onClick={() => onSessionChange(Math.min(sessions.length - 1, currentSession + 1))}
         className="text-white hover:text-gray-300 disabled:opacity-50"
         disabled={currentSession === sessions.length - 1}
       >
-        <ChevronRightIcon size={24} />
+        <ChevronRightIcon size={20} />
       </button>
     </div>
   )
-}
-
-interface Session {
-  title: string;
-  tracks: Track[];
 }
 
 export function DjArchive({ sessions }: DjArchiveProps) {
@@ -607,6 +630,7 @@ export function DjArchive({ sessions }: DjArchiveProps) {
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null)
   const [currentSession, setCurrentSession] = useState(0)
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
+  const isMobile = useMediaQuery({ maxWidth: 767 });
 
   const handleTrackSelect = useCallback((track: Track) => {
     setSelectedTrack(track);
@@ -625,9 +649,9 @@ export function DjArchive({ sessions }: DjArchiveProps) {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-900 text-white lowercase" style={{ fontFamily: "'Orbitron', sans-serif" }}>
-      <div className="absolute top-0 right-0 p-4 z-10 normal-case">
-        <Time />
+    <div className="flex flex-col h-screen bg-gray-900 text-white lowercase overflow-hidden" style={{ fontFamily: "'Orbitron', sans-serif" }}>
+      <div className={`absolute ${isMobile ? 'top-2 right-2' : 'top-0 right-0 p-4'} z-10 normal-case`}>
+        <Time isMobile={isMobile} />
       </div>
       <div className="flex-1 relative">
         {view === 'abstract' ? (
@@ -636,8 +660,8 @@ export function DjArchive({ sessions }: DjArchiveProps) {
           <MapView onTrackSelect={handleTrackSelect} tracks={sessions[currentSession].tracks} />
         )}
       </div>
-      <div className="absolute bottom-4 left-4 text-4xl z-10 font-bold uppercase" style={{ fontFamily: "'Orbitron', sans-serif", fontWeight: 900 }}>
-        DIGITAL LETTERS by{' '}
+      <div className={`absolute ${isMobile ? 'bottom-20 left-4 text-2xl' : 'bottom-4 left-4 text-4xl'} z-10 font-bold uppercase leading-tight`} style={{ fontFamily: "'Orbitron', sans-serif", fontWeight: 900 }}>
+        <div className={`${isMobile ? 'mb-1' : ''}`}>DIGITAL LETTERS by</div>
         <span className="inline-block">
           <span className="text-green-400">W</span>
           <span className="text-blue-400">A</span>
@@ -652,10 +676,10 @@ export function DjArchive({ sessions }: DjArchiveProps) {
         </span>
         {' '}radio
       </div>
-      <div className="absolute bottom-4 right-4 z-10">
+      <div className={`absolute ${isMobile ? 'bottom-16' : 'bottom-4'} right-4 z-10`}>
         <AnimatedWave />
       </div>
-      <div className="absolute top-4 left-4 z-10 flex space-x-2">
+      <div className={`absolute ${isMobile ? 'top-20 left-4' : 'top-4 left-4'} z-10 flex space-x-2`}>
         <button
           className={`px-3 py-1 text-xs font-medium transition-colors duration-200 ${
             view === 'abstract' ? 'text-white' : 'text-gray-400'
@@ -677,6 +701,7 @@ export function DjArchive({ sessions }: DjArchiveProps) {
         sessions={sessions}
         currentSession={currentSession}
         onSessionChange={handleSessionChange}
+        isMobile={isMobile}
       />
       <AnimatePresence>
         {selectedTrack && (
@@ -716,3 +741,16 @@ export function DjArchive({ sessions }: DjArchiveProps) {
     </div>
   );
 }
+
+const styles = `
+  @media (max-width: 767px) {
+    .song-label {
+      font-size: 6px !important;
+      padding: 1px 3px !important;
+    }
+  }
+`;
+
+export const DjArchiveStyles = () => (
+  <style jsx global>{styles}</style>
+);
