@@ -8,6 +8,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import dynamic from 'next/dynamic'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js'
+import { useMediaQuery } from 'react-responsive';
+import { NamJunePaikPlayer } from '@/components/ui/nam-june-paik-player';
 
 const Globe = dynamic(() => import('react-globe.gl'), { ssr: false })
 
@@ -34,6 +36,10 @@ interface DjArchiveProps {
   sessions: Session[];
 }
 
+interface AudioPlayerProps {
+  audioSrc: string | undefined;
+}
+
 const getRandomColor = (): string => {
   return `rgb(${Math.floor(Math.random() * 256)}, ${Math.floor(Math.random() * 256)}, ${Math.floor(Math.random() * 256)})`
 }
@@ -58,10 +64,10 @@ const Time: React.FC = () => {
       const newTimes: { [key: string]: string } = {}
       locations.forEach(loc => {
         const locTime = new Date(now.getTime() + loc.offset * 3600000)
-        newTimes[loc.name] = locTime.toLocaleTimeString('en-US', { 
-          hour: '2-digit', 
-          minute: '2-digit', 
-          hour12: true, 
+        newTimes[loc.name] = locTime.toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true,
           timeZone: 'UTC'
         })
       })
@@ -72,6 +78,32 @@ const Time: React.FC = () => {
     const interval = setInterval(updateTimes, 1000)
     return () => clearInterval(interval)
   }, [])
+
+  if (isMobile) {
+    return (
+      <div className="bg-black bg-opacity-80 rounded-lg text-white text-xs font-bold p-2">
+        <div className="flex justify-between items-center">
+          <span>NYC: {times['NYC'] || 'Loading...'}</span>
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="ml-2 focus:outline-none"
+          >
+            {isExpanded ? <ChevronUpIcon size={16} /> : <ChevronDownIcon size={16} />}
+          </button>
+        </div>
+        {isExpanded && (
+          <div className="mt-2 space-y-1">
+            {Object.entries(times).filter(([key]) => key !== 'NYC').map(([location, time]) => (
+              <div key={location} className="flex justify-between">
+                <span>{location}:</span>
+                <span>{time}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className="bg-black bg-opacity-80 p-6 rounded-lg text-white text-xl font-bold">
@@ -85,41 +117,85 @@ const Time: React.FC = () => {
   )
 }
 
-const AbstractView: React.FC<{ onTrackSelect: (track: Track) => void, tracks: Track[] }> = ({ onTrackSelect, tracks }) => {
-  const mountRef = useRef<HTMLDivElement>(null)
-  const audioRef = useRef<HTMLAudioElement | null>(null)
-  const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null)
+const AudioPlayer: React.FC<AudioPlayerProps> = ({ audioSrc }) => {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    if (!mountRef.current) return
+    if (audioSrc) {
+      console.log("Audio source:", audioSrc);
+      audioRef.current = new Audio(audioSrc);
+    }
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, [audioSrc]);
 
-    const scene = new THREE.Scene()
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
-    const renderer = new THREE.WebGLRenderer({ antialias: true })
-    const labelRenderer = new CSS2DRenderer()
+  const handlePlay = () => {
+    if (audioRef.current) {
+      audioRef.current.play();
+      setIsPlaying(true);
+    }
+  };
 
-    renderer.setSize(window.innerWidth, window.innerHeight)
-    labelRenderer.setSize(window.innerWidth, window.innerHeight)
-    mountRef.current.appendChild(renderer.domElement)
-    mountRef.current.appendChild(labelRenderer.domElement)
+  const handleStop = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      setIsPlaying(false);
+    }
+  };
 
-    labelRenderer.domElement.style.position = 'absolute'
-    labelRenderer.domElement.style.top = '0'
-    labelRenderer.domElement.style.pointerEvents = 'none'
+  if (!audioSrc) {
+    return null;
+  }
 
-    const geometry = new THREE.SphereGeometry(5, 64, 64)
-    const material = new THREE.ShaderMaterial({
-      uniforms: {
-        time: { value: 0 },
-      },
-      vertexShader: `
+  return (
+    <div className="absolute top-3/4 left-1/2 transform -translate-x-1/2 z-10 scale-75">
+      <NamJunePaikPlayer onPlay={handlePlay} onStop={handleStop} />
+    </div>
+  );
+};
+
+const AbstractView: React.FC<{ onTrackSelect: (track: Track) => void, tracks: Track[], audioSrc: string | undefined }> =
+  ({ onTrackSelect, tracks, audioSrc }) => {
+    const mountRef = useRef<HTMLDivElement>(null)
+    const audioRef = useRef<HTMLAudioElement | null>(null)
+    const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null)
+
+    useEffect(() => {
+      if (!mountRef.current) return
+
+      const scene = new THREE.Scene()
+      const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
+      const renderer = new THREE.WebGLRenderer({ antialias: true })
+      const labelRenderer = new CSS2DRenderer()
+
+      renderer.setSize(window.innerWidth, window.innerHeight)
+      labelRenderer.setSize(window.innerWidth, window.innerHeight)
+      mountRef.current.appendChild(renderer.domElement)
+      mountRef.current.appendChild(labelRenderer.domElement)
+
+      labelRenderer.domElement.style.position = 'absolute'
+      labelRenderer.domElement.style.top = '0'
+      labelRenderer.domElement.style.pointerEvents = 'none'
+
+      const geometry = new THREE.SphereGeometry(5, 64, 64)
+      const material = new THREE.ShaderMaterial({
+        uniforms: {
+          time: { value: 0 },
+        },
+        vertexShader: `
         varying vec2 vUv;
         void main() {
           vUv = uv;
           gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }
       `,
-      fragmentShader: `
+        fragmentShader: `
         uniform float time;
         varying vec2 vUv;
         void main() {
@@ -128,22 +204,22 @@ const AbstractView: React.FC<{ onTrackSelect: (track: Track) => void, tracks: Tr
           gl_FragColor = vec4(color, intensity * 0.3);
         }
       `,
-      transparent: true,
-      wireframe: true,
-    })
-    const sphere = new THREE.Mesh(geometry, material)
-    scene.add(sphere)
+        transparent: true,
+        wireframe: true,
+      })
+      const sphere = new THREE.Mesh(geometry, material)
+      scene.add(sphere)
 
-    const atmosphereGeometry = new THREE.SphereGeometry(5.2, 64, 64)
-    const atmosphereMaterial = new THREE.ShaderMaterial({
-      vertexShader: `
+      const atmosphereGeometry = new THREE.SphereGeometry(5.2, 64, 64)
+      const atmosphereMaterial = new THREE.ShaderMaterial({
+        vertexShader: `
         varying vec3 vNormal;
         void main() {
           vNormal = normalize(normalMatrix * normal);
           gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }
       `,
-      fragmentShader: `
+        fragmentShader: `
         uniform float time;
         varying vec3 vNormal;
         void main() {
@@ -153,258 +229,259 @@ const AbstractView: React.FC<{ onTrackSelect: (track: Track) => void, tracks: Tr
           gl_FragColor = vec4(color * intensity * (1.0 + pulse * 0.3), intensity * 0.5);
         }
       `,
-      uniforms: {
-        time: { value: 0 },
-      },
-      side: THREE.BackSide,
-      blending: THREE.AdditiveBlending,
-      transparent: true
-    })
-    const atmosphere = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial)
-    scene.add(atmosphere)
-
-    camera.position.z = 15
-
-    const controls = new OrbitControls(camera, renderer.domElement)
-    controls.enableDamping = true
-    controls.dampingFactor = 0.05
-    controls.rotateSpeed = 0.5
-    controls.autoRotate = true
-    controls.autoRotateSpeed = 0.5
-
-    const dots: THREE.Mesh[] = []
-    const positions: THREE.Vector3[] = []
-
-    tracks.forEach((track, index) => {
-      const phi = Math.acos(-1 + (2 * index) / tracks.length)
-      const theta = Math.sqrt(tracks.length * Math.PI) * phi
-
-      const x = 5 * Math.cos(theta) * Math.sin(phi)
-      const y = 5 * Math.sin(theta) * Math.sin(phi)
-      const z = 5 * Math.cos(phi)
-
-      const dotGeometry = new THREE.SphereGeometry(0.1, 32, 32)
-      const color = getRandomColor()
-      const dotMaterial = new THREE.MeshPhongMaterial({
-        color: new THREE.Color(color),
-        specular: new THREE.Color(0xffffff),
-        shininess: 100,
-        emissive: new THREE.Color(color),
-        emissiveIntensity: 0.7
+        uniforms: {
+          time: { value: 0 },
+        },
+        side: THREE.BackSide,
+        blending: THREE.AdditiveBlending,
+        transparent: true
       })
-      const dot = new THREE.Mesh(dotGeometry, dotMaterial)
-      dot.position.set(x, y, z)
-      
-      sphere.add(dot)
-      dots.push(dot)
-      positions.push(new THREE.Vector3(x, y, z))
+      const atmosphere = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial)
+      scene.add(atmosphere)
 
-      const songDiv = document.createElement('div')
-      songDiv.className = 'song-label'
-      songDiv.textContent = track.title
-      songDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.7)'
-      songDiv.style.color = 'white'
-      songDiv.style.padding = '2px 5px'
-      songDiv.style.borderRadius = '3px'
-      songDiv.style.fontSize = '8px'
-      songDiv.style.opacity = '0'
-      songDiv.style.transition = 'opacity 0.3s'
-      songDiv.style.fontFamily = "'Orbitron', sans-serif"
+      camera.position.z = 15
 
-      const songLabel = new CSS2DObject(songDiv)
-      songLabel.position.set(x, y, z)
-      sphere.add(songLabel)
+      const controls = new OrbitControls(camera, renderer.domElement)
+      controls.enableDamping = true
+      controls.dampingFactor = 0.05
+      controls.rotateSpeed = 0.5
+      controls.autoRotate = true
+      controls.autoRotateSpeed = 0.5
 
-      dot.userData = { track, label: songLabel }
-    })
+      const dots: THREE.Mesh[] = []
+      const positions: THREE.Vector3[] = []
 
-    const stringGeometry = new THREE.BufferGeometry().setFromPoints(positions)
-    const stringMaterial = new THREE.LineBasicMaterial({ color: 0xFFFFFF, opacity: 0.8, transparent: true, linewidth: 2 })
-    const stringLine = new THREE.Line(stringGeometry, stringMaterial)
-    sphere.add(stringLine)
+      tracks.forEach((track, index) => {
+        const phi = Math.acos(-1 + (2 * index) / tracks.length)
+        const theta = Math.sqrt(tracks.length * Math.PI) * phi
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5)
-    scene.add(ambientLight)
+        const x = 5 * Math.cos(theta) * Math.sin(phi)
+        const y = 5 * Math.sin(theta) * Math.sin(phi)
+        const z = 5 * Math.cos(phi)
 
-    const pointLight = new THREE.PointLight(0xffffff, 1)
-    pointLight.position.set(10, 10, 10)
-    scene.add(pointLight)
-
-    const raycaster = new THREE.Raycaster()
-    const mouse = new THREE.Vector2()
-
-    const onMouseMove = (event: MouseEvent) => {
-      mouse.x = (event.clientX / window.innerWidth) * 2 - 1
-      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1
-
-      raycaster.setFromCamera(mouse, camera)
-      const intersects = raycaster.intersectObjects(sphere.children)
-
-      if (intersects.length > 0) {
-        const intersectedObject = intersects[0].object
-        if (intersectedObject.userData && intersectedObject.userData.track) {
-          ;(intersectedObject.userData.label.element as HTMLElement).style.opacity = '1'
-        }
-      } else {
-        sphere.children.forEach((child) => {
-          if (child.userData && child.userData.label) {
-            (child.userData.label.element as HTMLElement).style.opacity = '0'
-          }
+        const dotGeometry = new THREE.SphereGeometry(0.1, 32, 32)
+        const color = getRandomColor()
+        const dotMaterial = new THREE.MeshPhongMaterial({
+          color: new THREE.Color(color),
+          specular: new THREE.Color(0xffffff),
+          shininess: 100,
+          emissive: new THREE.Color(color),
+          emissiveIntensity: 0.7
         })
-      }
-    }
+        const dot = new THREE.Mesh(dotGeometry, dotMaterial)
+        dot.position.set(x, y, z)
 
-    const onClick = (event: MouseEvent) => {
-      mouse.x = (event.clientX / window.innerWidth) * 2 - 1
-      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1
+        sphere.add(dot)
+        dots.push(dot)
+        positions.push(new THREE.Vector3(x, y, z))
 
-      raycaster.setFromCamera(mouse, camera)
-      const intersects = raycaster.intersectObjects(sphere.children)
+        const songDiv = document.createElement('div')
+        songDiv.className = 'song-label'
+        songDiv.textContent = track.title
+        songDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.7)'
+        songDiv.style.color = 'white'
+        songDiv.style.padding = '2px 5px'
+        songDiv.style.borderRadius = '3px'
+        songDiv.style.fontSize = '8px'
+        songDiv.style.opacity = '0'
+        songDiv.style.transition = 'opacity 0.3s'
+        songDiv.style.fontFamily = "'Orbitron', sans-serif"
 
-      if (intersects.length > 0) {
-        const intersectedObject = intersects[0].object
-        if (intersectedObject.userData && intersectedObject.userData.track) {
-          const track = intersectedObject.userData.track as Track
-          onTrackSelect(track)
-          playTrackPreview(track.deezerId)
+        const songLabel = new CSS2DObject(songDiv)
+        songLabel.position.set(x, y, z)
+        sphere.add(songLabel)
+
+        dot.userData = { track, label: songLabel }
+      })
+
+      const stringGeometry = new THREE.BufferGeometry().setFromPoints(positions)
+      const stringMaterial = new THREE.LineBasicMaterial({ color: 0xFFFFFF, opacity: 0.8, transparent: true, linewidth: 2 })
+      const stringLine = new THREE.Line(stringGeometry, stringMaterial)
+      sphere.add(stringLine)
+
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.5)
+      scene.add(ambientLight)
+
+      const pointLight = new THREE.PointLight(0xffffff, 1)
+      pointLight.position.set(10, 10, 10)
+      scene.add(pointLight)
+
+      const raycaster = new THREE.Raycaster()
+      const mouse = new THREE.Vector2()
+
+      const onMouseMove = (event: MouseEvent) => {
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1
+
+        raycaster.setFromCamera(mouse, camera)
+        const intersects = raycaster.intersectObjects(sphere.children)
+
+        if (intersects.length > 0) {
+          const intersectedObject = intersects[0].object
+          if (intersectedObject.userData && intersectedObject.userData.track) {
+            ; (intersectedObject.userData.label.element as HTMLElement).style.opacity = '1'
+          }
+        } else {
+          sphere.children.forEach((child) => {
+            if (child.userData && child.userData.label) {
+              (child.userData.label.element as HTMLElement).style.opacity = '0'
+            }
+          })
         }
       }
-    }
 
-    window.addEventListener('mousemove', onMouseMove)
-    window.addEventListener('click', onClick)
+      const onClick = (event: MouseEvent) => {
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1
 
-    const animate = () => {
-      requestAnimationFrame(animate)
-      controls.update()
-      const time = performance.now() * 0.001
-      ;(material.uniforms.time as { value: number }).value = time
-      ;(atmosphereMaterial.uniforms.time as { value: number }).value = time
-      renderer.render(scene, camera)
-      labelRenderer.render(scene, camera)
-    }
+        raycaster.setFromCamera(mouse, camera)
+        const intersects = raycaster.intersectObjects(sphere.children)
 
-    animate()
-
-    const handleResize = () => {
-      camera.aspect = window.innerWidth / window.innerHeight
-      camera.updateProjectionMatrix()
-      renderer.setSize(window.innerWidth, window.innerHeight)
-      labelRenderer.setSize(window.innerWidth, window.innerHeight)
-    }
-
-    window.addEventListener('resize', handleResize)
-
-    return () => {
-      if (mountRef.current) {
-        mountRef.current.removeChild(renderer.domElement)
-        mountRef.current.removeChild(labelRenderer.domElement)
+        if (intersects.length > 0) {
+          const intersectedObject = intersects[0].object
+          if (intersectedObject.userData && intersectedObject.userData.track) {
+            const track = intersectedObject.userData.track as Track
+            onTrackSelect(track)
+            playTrackPreview(track.deezerId)
+          }
+        }
       }
-      window.removeEventListener('mousemove', onMouseMove)
-      window.removeEventListener('click', onClick)
-      window.removeEventListener('resize', handleResize)
-    }
-  }, [onTrackSelect, tracks])
 
-  const playTrackPreview = useCallback((deezerId: string) => {
-    if (audioRef.current) {
-      audioRef.current.pause()
-    }
-    if (currentlyPlaying === deezerId) {
-      setCurrentlyPlaying(null)
-      return
-    }
-    const audio = new Audio(`https://cdns-preview-8.dzcdn.net/stream/c-${deezerId}`)
-    audio.play()
-    audioRef.current = audio
-    setCurrentlyPlaying(deezerId)
-  }, [currentlyPlaying])
+      window.addEventListener('mousemove', onMouseMove)
+      window.addEventListener('click', onClick)
 
-  return (
-    <div ref={mountRef} className="w-full h-full">
-      <audio ref={audioRef} />
-    </div>
-  )
-}
-
-const MapView: React.FC<{ onTrackSelect: (track: Track) => void, tracks: Track[] }> = ({ onTrackSelect, tracks }) => {
-  const globeEl = useRef<GlobeMethods | null>(null)
-  const audioRef = useRef<HTMLAudioElement | null>(null)
-  const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null)
-
-  const globePoints = useMemo(() => {
-    return tracks.map((track, index) => ({
-      lat: track.country[0] + (Math.random() - 0.5) * 5,
-      lng: track.country[1] + (Math.random() - 0.5) * 5,
-      track: track,
-      color: getRandomColor(),
-      radius: 0.5,
-      height: (index % 3 + 1) * 0.3,
-    }))
-  }, [tracks])
-
-  useEffect(() => {
-    if (globeEl.current) {
-      // @ts-expect-error: Pass The Build
-      globeEl.current.controls().autoRotate = true
-      // @ts-expect-error: Pass The Build
-      globeEl.current.controls().autoRotateSpeed = 0.5
-    }
-  }, [])
-
-  const arcsData = useMemo(() => {
-    const sessionArcs: { [key: string]: any[] } = {}
-    tracks.forEach(track => {
-      if (!sessionArcs[track.date]) {
-        sessionArcs[track.date] = []
+      const animate = () => {
+        requestAnimationFrame(animate)
+        controls.update()
+        const time = performance.now() * 0.001
+          ; (material.uniforms.time as { value: number }).value = time
+          ; (atmosphereMaterial.uniforms.time as { value: number }).value = time
+        renderer.render(scene, camera)
+        labelRenderer.render(scene, camera)
       }
-      sessionArcs[track.date].push({
-        startLat: track.country[0],
-        startLng: track.country[1],
-        color: '#FFFFFF'
-      })
-    })
 
-    return Object.values(sessionArcs).map(sessionTracks => {
-      return sessionTracks.map((track, idx) => ({
-        ...track,
-        endLat: sessionTracks[(idx + 1) % sessionTracks.length].startLat,
-        endLng: sessionTracks[(idx + 1) % sessionTracks.length].startLng
+      animate()
+
+      const handleResize = () => {
+        camera.aspect = window.innerWidth / window.innerHeight
+        camera.updateProjectionMatrix()
+        renderer.setSize(window.innerWidth, window.innerHeight)
+        labelRenderer.setSize(window.innerWidth, window.innerHeight)
+      }
+
+      window.addEventListener('resize', handleResize)
+
+      return () => {
+        if (mountRef.current) {
+          mountRef.current.removeChild(renderer.domElement)
+          mountRef.current.removeChild(labelRenderer.domElement)
+        }
+        window.removeEventListener('mousemove', onMouseMove)
+        window.removeEventListener('click', onClick)
+        window.removeEventListener('resize', handleResize)
+      }
+    }, [onTrackSelect, tracks])
+
+    const playTrackPreview = useCallback((deezerId: string) => {
+      if (audioRef.current) {
+        audioRef.current.pause()
+      }
+      if (currentlyPlaying === deezerId) {
+        setCurrentlyPlaying(null)
+        return
+      }
+      const audio = new Audio(`https://cdns-preview-8.dzcdn.net/stream/c-${deezerId}`)
+      audio.play()
+      audioRef.current = audio
+      setCurrentlyPlaying(deezerId)
+    }, [currentlyPlaying])
+
+    return (
+      <div ref={mountRef} className="w-full h-full">
+        <AudioPlayer audioSrc={audioSrc} />
+      </div>
+    )
+  }
+
+const MapView: React.FC<{ onTrackSelect: (track: Track) => void, tracks: Track[], audioSrc: string | undefined }> =
+  ({ onTrackSelect, tracks, audioSrc }) => {
+    const globeEl = useRef<GlobeMethods | null>(null)
+    const audioRef = useRef<HTMLAudioElement | null>(null)
+    const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null)
+
+    const globePoints = useMemo(() => {
+      return tracks.map((track, index) => ({
+        lat: track.country[0] + (Math.random() - 0.5) * 5,
+        lng: track.country[1] + (Math.random() - 0.5) * 5,
+        track: track,
+        color: getRandomColor(),
+        radius: 0.5,
+        height: (index % 3 + 1) * 0.3,
       }))
-    }).flat()
-  }, [tracks])
+    }, [tracks])
 
-  const playTrackPreview = useCallback((deezerId: string) => {
-    if (audioRef.current) {
-      audioRef.current.pause()
-    }
-    if (currentlyPlaying === deezerId) {
-      setCurrentlyPlaying(null)
-      return
-    }
-    const audio = new Audio(`https://cdns-preview-8.dzcdn.net/stream/c-${deezerId}`)
-    audio.play()
-    audioRef.current = audio
-    setCurrentlyPlaying(deezerId)
-  }, [currentlyPlaying])
+    useEffect(() => {
+      if (globeEl.current) {
+        // @ts-expect-error: Pass The Build
+        globeEl.current.controls().autoRotate = true
+        // @ts-expect-error: Pass The Build
+        globeEl.current.controls().autoRotateSpeed = 0.5
+      }
+    }, [])
 
-  return (
-    <div className="relative w-full h-full">
-      <Globe
-        globeRef={globeEl}
-        globeImageUrl="//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
-        bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
-        backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png"
-        pointsData={globePoints}
-        pointLat="lat"
-        pointLng="lng"
-        pointColor="color"
-        pointAltitude="height"
-        pointRadius="radius"
-        pointLabel={(d: any) => {
-          if (!d || !d.track) return '';
-          const { title, artist } = d.track;
-          return `
+    const arcsData = useMemo(() => {
+      const sessionArcs: { [key: string]: any[] } = {}
+      tracks.forEach(track => {
+        if (!sessionArcs[track.date]) {
+          sessionArcs[track.date] = []
+        }
+        sessionArcs[track.date].push({
+          startLat: track.country[0],
+          startLng: track.country[1],
+          color: '#FFFFFF'
+        })
+      })
+
+      return Object.values(sessionArcs).map(sessionTracks => {
+        return sessionTracks.map((track, idx) => ({
+          ...track,
+          endLat: sessionTracks[(idx + 1) % sessionTracks.length].startLat,
+          endLng: sessionTracks[(idx + 1) % sessionTracks.length].startLng
+        }))
+      }).flat()
+    }, [tracks])
+
+    const playTrackPreview = useCallback((deezerId: string) => {
+      if (audioRef.current) {
+        audioRef.current.pause()
+      }
+      if (currentlyPlaying === deezerId) {
+        setCurrentlyPlaying(null)
+        return
+      }
+      const audio = new Audio(`https://cdns-preview-8.dzcdn.net/stream/c-${deezerId}`)
+      audio.play()
+      audioRef.current = audio
+      setCurrentlyPlaying(deezerId)
+    }, [currentlyPlaying])
+
+    return (
+      <div className="relative w-full h-full">
+        <Globe
+          globeRef={globeEl}
+          globeImageUrl="//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
+          bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
+          backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png"
+          pointsData={globePoints}
+          pointLat="lat"
+          pointLng="lng"
+          pointColor="color"
+          pointAltitude="height"
+          pointRadius="radius"
+          pointLabel={(d: any) => {
+            if (!d || !d.track) return '';
+            const { title, artist } = d.track;
+            return `
             <div style="
               background-color: rgba(0, 0, 0, 0.8);
               color: white;
@@ -417,29 +494,29 @@ const MapView: React.FC<{ onTrackSelect: (track: Track) => void, tracks: Track[]
               <div>${artist || 'Unknown Artist'}</div>
             </div>
           `;
-        }}
-        onPointClick={(point) => {
-          if (point && point.track) {
-            onTrackSelect(point.track);
-            playTrackPreview(point.track.deezerId);
-          }
-        }}
-        arcsData={arcsData}
-        arcColor={() => '#FFFFFF'}
-        arcDashLength={() => Math.random()}
-        arcDashGap={() => Math.random()}
-        arcDashAnimateTime={() => Math.random() * 4000 + 500}
-        arcStroke={0.5}
-        globeImageOpacity={0.9}
-        atmosphereColor="rgba(100,150,255,0.3)"
-        atmosphereAltitude={0.15}
-        enablePointerInteraction={true}
-        animateIn={true}
-      />
-      <audio ref={audioRef} />
-    </div>
-  );
-}
+          }}
+          onPointClick={(point) => {
+            if (point && point.track) {
+              onTrackSelect(point.track);
+              playTrackPreview(point.track.deezerId);
+            }
+          }}
+          arcsData={arcsData}
+          arcColor={() => '#FFFFFF'}
+          arcDashLength={() => Math.random()}
+          arcDashGap={() => Math.random()}
+          arcDashAnimateTime={() => Math.random() * 4000 + 500}
+          arcStroke={0.5}
+          globeImageOpacity={0.9}
+          atmosphereColor="rgba(100,150,255,0.3)"
+          atmosphereAltitude={0.15}
+          enablePointerInteraction={true}
+          animateIn={true}
+        />
+        <AudioPlayer audioSrc={audioSrc} />
+      </div>
+    );
+  }
 
 const TrackInfo: React.FC<{ track: Track, onClose: () => void, onPlay: (track: Track) => void }> = ({ track, onClose, onPlay }) => {
   const [albumCover, setAlbumCover] = useState<string | null>(null)
@@ -624,6 +701,8 @@ export function DjArchive({ sessions }: DjArchiveProps) {
     setCurrentTrack(null);
   };
 
+  const currentAudioSrc = sessions[currentSession].audioSrc;
+
   return (
     <div className="flex flex-col h-screen bg-gray-900 text-white lowercase" style={{ fontFamily: "'Orbitron', sans-serif" }}>
       <div className="absolute top-0 right-0 p-4 z-10 normal-case">
@@ -631,9 +710,17 @@ export function DjArchive({ sessions }: DjArchiveProps) {
       </div>
       <div className="flex-1 relative">
         {view === 'abstract' ? (
-          <AbstractView onTrackSelect={handleTrackSelect} tracks={sessions[currentSession].tracks} />
+          <AbstractView
+            onTrackSelect={handleTrackSelect}
+            tracks={sessions[currentSession].tracks}
+            audioSrc={currentAudioSrc}
+          />
         ) : (
-          <MapView onTrackSelect={handleTrackSelect} tracks={sessions[currentSession].tracks} />
+          <MapView
+            onTrackSelect={handleTrackSelect}
+            tracks={sessions[currentSession].tracks}
+            audioSrc={currentAudioSrc}
+          />
         )}
       </div>
       <div className="absolute bottom-4 left-4 text-4xl z-10 font-bold uppercase" style={{ fontFamily: "'Orbitron', sans-serif", fontWeight: 900 }}>
@@ -657,17 +744,15 @@ export function DjArchive({ sessions }: DjArchiveProps) {
       </div>
       <div className="absolute top-4 left-4 z-10 flex space-x-2">
         <button
-          className={`px-3 py-1 text-xs font-medium transition-colors duration-200 ${
-            view === 'abstract' ? 'text-white' : 'text-gray-400'
-          }`}
+          className={`px-3 py-1 text-xs font-medium transition-colors duration-200 ${view === 'abstract' ? 'text-white' : 'text-gray-400'
+            }`}
           onClick={() => setView('abstract')}
         >
           abstract
         </button>
         <button
-          className={`px-3 py-1 text-xs font-medium transition-colors duration-200 ${
-            view === 'map' ? 'text-white' : 'text-gray-400'
-          }`}
+          className={`px-3 py-1 text-xs font-medium transition-colors duration-200 ${view === 'map' ? 'text-white' : 'text-gray-400'
+            }`}
           onClick={() => setView('map')}
         >
           map
@@ -680,9 +765,9 @@ export function DjArchive({ sessions }: DjArchiveProps) {
       />
       <AnimatePresence>
         {selectedTrack && (
-          <TrackInfo 
-            track={selectedTrack} 
-            onClose={() => setSelectedTrack(null)} 
+          <TrackInfo
+            track={selectedTrack}
+            onClose={() => setSelectedTrack(null)}
             onPlay={handleTrackClick}
           />
         )}
