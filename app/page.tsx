@@ -16,6 +16,7 @@ interface Track {
 interface Session {
   title: string;
   tracks: Track[];
+  audioSrc: string;
 }
 
 const sessions: Session[] = [
@@ -40,7 +41,8 @@ const sessions: Session[] = [
       { title: "Enter Galactic (Love Connection, Pt. I)", artist: "Kid Cudi", album: "Man On the Moon: The End of Day", duration: "04:20", bpm: 120, key: "3A", date: "2024-10-06", country: [37.0902, -95.7129], deezerId: "5706981", soundcloudUrl: "https://soundcloud.com/cudderland/enter-galactic-love-connection" },
       { title: "BLACK (feat. JENNIE)", artist: "G-DRAGON", album: "COUP D'ETAT (Korea Edition)", duration: "03:23", bpm: 90, key: "8A", date: "2024-10-06", country: [35.9078, 127.7669], deezerId: "1234576", soundcloudUrl: "https://soundcloud.com/ayeareeya/black-feat-jennie-kim-of-yg" },
       { title: "Everything is romantic", artist: "Charli xcx", album: "BRAT", duration: "03:23", bpm: 150, key: "7A", date: "2024-10-06", country: [53.3781, -1.4360], deezerId: "1234577", soundcloudUrl: "https://soundcloud.com/charlixcx/everything-is-romantic" },
-    ]
+    ],
+    audioSrc: ""
   },
   {
     title: "#2 MUSIC MAKES ME LOOSE CONTROL",
@@ -63,10 +65,40 @@ const sessions: Session[] = [
       { title: "Lady (Hear Me Tonight)", artist: "Modjo", album: "Modjo (Remastered)", duration: "5:07", bpm: 126, key: "3B", date: "2024-10-14", country: [46.2276, 2.2137], deezerId: "", soundcloudUrl: "https://soundcloud.com/modjo-official/lady-hear-me-tonight-1" },
       { title: "New Low", artist: "Mk.gee", album: "Two Star & The Dream Police", duration: "2:06", bpm: 128, key: "5B", date: "2024-10-14", country: [37.0902, -95.7129], deezerId: "", soundcloudUrl: "https://soundcloud.com/mkgee/new-low" },
       { title: "C.D.C (Panorama City Remix)", artist: "Yitai Wang", album: "Feel & Sight", duration: "4:20", bpm: 77.5, key: "6A", date: "2024-10-14", country: [35.8617, 104.1954], deezerId: "", soundcloudUrl: "https://soundcloud.com/wangyitai/c-d-c-panorama-city-remix" },
-    ]
-  }
+    ],
+    audioSrc: ""
+  },
+  {
+    title: '#3 "i got chocolate and i got cravings" 🍫',
+    tracks: [
+      { title: "Titanium", artist: "Dave", album: "Titanium & Mercury...", duration: "2:07", bpm: 121, key: "5A", date: "2024-10-22", country: [51.5074, -0.1278], deezerId: "", soundcloudUrl: "https://soundcloud.com/santandave/titanium" },
+      { title: "Don't Rush (feat. Headie One)", artist: "Young T & Bugsey", album: "Plead The 5th", duration: "3:27", bpm: 108, key: "12A", date: "2024-10-22", country: [52.9548, -1.1581], deezerId: "", soundcloudUrl: "https://soundcloud.com/youngtbugsey/dont-rush-feat-headie-one" },
+      { title: "Cat Pack", artist: "AJ Tracey", album: "AJ Tracey (Deluxe)", duration: "2:45", bpm: 140, key: "2A", date: "2024-10-22", country: [51.5074, -0.1278], deezerId: "", soundcloudUrl: "https://soundcloud.com/ajtracey/cat-pack" },
+      { title: "30", artist: "Aitch", album: "Polaris", duration: "2:17", bpm: 141, key: "2A", date: "2024-10-22", country: [53.4808, -2.2426], deezerId: "", soundcloudUrl: "https://soundcloud.com/officialaitch/aitch-30" },
+      { title: "Greaze Mode", artist: "Skepta & Nafe Smallz", album: "Ignorance Is Bliss", duration: "2:48", bpm: 150, key: "11A", date: "2024-10-22", country: [51.5074, -0.1278], deezerId: "", soundcloudUrl: "https://soundcloud.com/skepta/greaze-mode" },
+      { title: "Without Me", artist: "Eminem", album: "The Eminem Show (...", duration: "4:50", bpm: 112, key: "6A", date: "2024-10-22", country: [42.3314, -83.0458], deezerId: "", soundcloudUrl: "" },
+      { title: "Ni**as in Paris feat (XXXXTentacion)", artist: "JAY-Z & Kanye West", album: "Watch the Throne (...", duration: "3:39", bpm: 140, key: "5A", date: "2024-10-22", country: [40.7128, -74.0060], deezerId: "", soundcloudUrl: "https://soundcloud.com/lathan-pike/jay-z-kanye-west-niggas-in" },
+      { title: "Faucet", artist: "Earl Sweatshirt", album: "I Don't Like Shit, I D...", duration: "3:07", bpm: 73, key: "7A", date: "2024-10-22", country: [34.0522, -118.2437], deezerId: "", soundcloudUrl: "https://soundcloud.com/earlxsweatshirtmusic/faucet" },
+      { title: "Trauma & Grace", artist: "Medhane", album: "Own Pace", duration: "2:11", bpm: 125, key: "12A", date: "2024-10-22", country: [40.7128, -74.0060], deezerId: "", soundcloudUrl: "https://soundcloud.com/mehdonny/trauma-grace" },
+      { title: "Blame", artist: "Pink Siifu & Fly Anakin", album: "FlySiifu's (Deluxe E...", duration: "3:02", bpm: 137, key: "4A", date: "2024-10-22", country: [37.5407, -77.4360], deezerId: "", soundcloudUrl: "https://soundcloud.com/siiifu/blame" },
+      { title: "My Whole Life", artist: "Navy Blue", album: "Navy's Reprise", duration: "2:30", bpm: 82, key: "9A", date: "2024-10-22", country: [40.7128, -74.0060], deezerId: "", soundcloudUrl: "https://soundcloud.com/rompsukainen/navy-blue-my-whole-life" },
+      { title: "Folie A Deux (feat. Westside Gunn & Keisha Plum)", artist: "Mach-Hommy", album: "Pray For Haiti", duration: "2:34", bpm: 79, key: "9A", date: "2024-10-22", country: [40.7128, -74.0060], deezerId: "", soundcloudUrl: "https://soundcloud.com/craigmca/mach-hommy-folie-a-deux-ft-westside-gunn-keisha-plum" },
+      { title: "Train Love", artist: "Your Old Droog", album: "Transportation", duration: "4:02", bpm: 95, key: "10A", date: "2024-10-22", country: [40.7128, -74.0060], deezerId: "", soundcloudUrl: "https://soundcloud.com/your-old-droog/train-love-1" },
+      { title: "S.N.O.R.T. (feat. Freddie Gibbs)", artist: "Boldy James & The Alc...", album: "The Price of Tea in...", duration: "3:11", bpm: 81, key: "11A", date: "2024-10-22", country: [42.3314, -83.0458], deezerId: "", soundcloudUrl: "https://soundcloud.com/alan-the-chemist/boldy-james-snort-feat-freddie-gibbs" },
+      { title: "Grandma Hips (feat. Danny Brown)", artist: "Your Old Droog", album: "Packs", duration: "2:28", bpm: 99, key: "2A", date: "2024-10-22", country: [40.7128, -74.0060], deezerId: "", soundcloudUrl: "https://soundcloud.com/monoenstereo108/your-old-droogs-grandma-hips-featuring-danny-brown" },
+      { title: "E. Coli (feat. Earl Sweatshirt)", artist: "The Alchemist", album: "Bread - EP", duration: "2:12", bpm: 64, key: "10A", date: "2024-10-22", country: [34.0522, -118.2437], deezerId: "", soundcloudUrl: "https://soundcloud.com/user-462653716/e-coli-feat-earl-sweatshirt" },
+      { title: "Microphone Mathematics", artist: "Quasimoto", album: "The Unseen", duration: "3:14", bpm: 88, key: "4A", date: "2024-10-22", country: [34.0522, -118.2437], deezerId: "", soundcloudUrl: "https://soundcloud.com/madlib/microphone-mathematics" },
+    ],
+    audioSrc: "/audio/crc-10-21-2024-3.mp3"
+  },
 ];
 
 export default function Page() {
-  return <DjArchive sessions={sessions} />
+  // Don't add the /audio/ prefix here
+  const sessionsWithFullAudioPath = sessions.map(session => ({
+    ...session,
+    audioSrc: session.audioSrc || undefined
+  }));
+
+  return <DjArchive sessions={sessionsWithFullAudioPath} />
 }
