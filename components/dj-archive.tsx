@@ -155,7 +155,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ audioSrc }) => {
   }
 
   return (
-    <div className="absolute top-3/4 left-1/2 transform -translate-x-1/2 z-10 scale-75">
+    <div className="absolute bottom-40 left-1/2 transform -translate-x-1/2 z-20 scale-75 md:scale-100 md:bottom-1/4">
       <NamJunePaikPlayer onPlay={handlePlay} onStop={handleStop} />
     </div>
   );
